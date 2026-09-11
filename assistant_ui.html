@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LLM Desk</title>
+  <style>
+    :root {
+      --ink: #1b2421;
+      --muted: #66736d;
+      --line: #dce5df;
+      --paper: #f7faf6;
+      --panel: #ffffff;
+      --mint: #d9f0df;
+      --mint-strong: #2f8058;
+      --coral: #ef765e;
+      --shadow: 0 20px 55px rgba(39, 64, 50, .12);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: #edf4ed;
+      font: 15px/1.55 Georgia, "Times New Roman", serif;
+    }
+    button, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+
+    .app {
+      min-height: 100vh;
+      padding: 28px;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(255, 247, 218, .9), transparent 30%),
+        linear-gradient(135deg, #eef7ef 0%, #f8f4e9 48%, #f1e9e0 100%);
+    }
+    .shell {
+      width: min(1200px, 100%);
+      min-height: calc(100vh - 56px);
+      margin: auto;
+      display: grid;
+      grid-template-columns: 290px minmax(0, 1fr);
+      overflow: hidden;
+      background: rgba(255,255,255,.78);
+      border: 1px solid rgba(255,255,255,.8);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+    aside {
+      padding: 30px 24px;
+      background: #24473d;
+      color: #f3f8ef;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      width: 38px; height: 38px; display: grid; place-items: center;
+      border-radius: 12px; background: var(--mint); color: #245c43; font-weight: bold;
+      font-family: Arial, sans-serif;
+    }
+    .brand strong { display: block; font: 700 19px Arial, sans-serif; letter-spacing: .02em; }
+    .brand small { color: #b8d0c1; font: 12px Arial, sans-serif; }
+    .eyebrow { margin: 0 0 8px; color: #a9c8b4; font: 700 11px Arial, sans-serif; letter-spacing: .13em; text-transform: uppercase; }
+    aside h2 { margin: 0; font-size: 23px; line-height: 1.1; font-weight: normal; }
+    .model-card { padding: 16px; border: 1px solid rgba(220,245,226,.16); border-radius: 14px; background: rgba(255,255,255,.07); }
+    .model-card label { display: block; margin-bottom: 8px; color: #c1d7c8; font: 12px Arial, sans-serif; }
+    select {
+      width: 100%; border: 1px solid #668979; border-radius: 9px; padding: 10px 11px;
+      color: #f6fbf5; background: #315b4d; outline: none;
+    }
+    select:focus { border-color: var(--mint); }
+    .side-note { margin: 0; color: #bdd2c3; font: 13px/1.6 Arial, sans-serif; }
+    .toolbox { display: grid; gap: 7px; }
+    .tool-button { border: 1px solid rgba(220,245,226,.2); border-radius: 8px; padding: 9px 10px; text-align: left; color: #e9f5eb; background: rgba(255,255,255,.06); font: 12px Arial, sans-serif; }
+    .tool-button:hover { border-color: var(--mint); background: rgba(217,240,223,.14); }
+    .tool-button:disabled { opacity: .5; cursor: wait; }
+    .compare-button { border-color: #e5b878; color: #fff4d9; background: rgba(229,184,120,.16); }
+    .compare-button:hover { border-color: #f5d39a; background: rgba(229,184,120,.26); }
+    .status { margin-top: auto; display: flex; align-items: center; gap: 9px; color: #bdd2c3; font: 12px Arial, sans-serif; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #8ed09e; box-shadow: 0 0 0 4px rgba(142,208,158,.14); }
+
+    main { min-width: 0; display: flex; flex-direction: column; background: var(--paper); }
+    header {
+      min-height: 90px; padding: 22px 30px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--line); background: rgba(255,255,255,.68);
+    }
+    header h1 { margin: 0; font: 700 24px Arial, sans-serif; letter-spacing: -.02em; }
+    header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    .clear {
+      border: 1px solid var(--line); border-radius: 9px; padding: 9px 12px; color: #456158;
+      background: #fff; font: 700 12px Arial, sans-serif;
+    }
+    .clear:hover { border-color: var(--coral); color: #bd4e3d; }
+    .quit { margin-left: 8px; border: 0; border-radius: 9px; padding: 10px 13px; color: #fff; background: #bd5a48; font: 700 12px Arial, sans-serif; }
+    .quit:hover { background: #9f4636; }
+    .results { margin: 18px clamp(20px, 6vw, 78px) 0; border: 1px solid var(--line); border-radius: 13px; overflow: hidden; background: #172c25; box-shadow: 0 7px 18px rgba(31,55,40,.08); }
+    .result-head { padding: 9px 13px; display: flex; justify-content: space-between; color: #d8eedc; background: #24473d; font: 700 11px Arial, sans-serif; letter-spacing: .05em; text-transform: uppercase; }
+    .result-status { color: #a8cdb0; font-weight: normal; text-transform: none; letter-spacing: 0; }
+    .result-output { max-height: 150px; overflow: auto; margin: 0; padding: 12px 13px; color: #d8e9db; white-space: pre-wrap; font: 12px/1.5 Consolas, monospace; }
+    .comparison { display: none; margin: 12px clamp(20px, 6vw, 78px) 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .comparison.visible { display: grid; }
+    .compare-card { min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 13px; background: #fff; }
+    .compare-card h3 { margin: 0 0 8px; overflow: hidden; color: #286445; font: 700 13px Arial, sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+    .compare-metrics { display: flex; gap: 12px; margin-bottom: 10px; color: var(--muted); font: 11px Arial, sans-serif; }
+    .compare-response { min-height: 60px; color: #34433b; white-space: pre-wrap; font-size: 13px; }
+    .modal-backdrop { position: fixed; inset: 0; z-index: 5; display: grid; place-items: center; padding: 20px; background: rgba(19,42,34,.42); }
+    .modal { width: min(430px, 100%); padding: 24px; border-radius: 18px; background: #fff; box-shadow: var(--shadow); }
+    .modal h2 { margin: 0 0 5px; font: 700 22px Arial, sans-serif; }
+    .modal p { margin: 0 0 18px; color: var(--muted); }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+    .stat { padding: 12px 8px; border-radius: 10px; text-align: center; background: #eef7ef; }
+    .stat strong { display: block; font: 700 20px Arial, sans-serif; color: var(--mint-strong); }
+    .stat span { color: var(--muted); font: 11px Arial, sans-serif; }
+    .modal-close { width: 100%; border: 0; border-radius: 9px; padding: 11px; color: #fff; background: var(--mint-strong); font: 700 12px Arial, sans-serif; }
+    .messages { flex: 1; min-height: 360px; overflow: auto; padding: 30px clamp(20px, 6vw, 78px); }
+    .welcome { max-width: 620px; margin: 12vh auto 0; text-align: center; animation: rise .45s ease-out both; }
+    .welcome-badge { display: inline-block; padding: 6px 10px; border-radius: 999px; color: #286445; background: var(--mint); font: 700 11px Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+    .welcome h2 { margin: 18px 0 8px; font-size: clamp(28px, 4vw, 44px); line-height: 1; font-weight: normal; }
+    .welcome p { margin: 0 auto; max-width: 500px; color: var(--muted); }
+    .message { display: flex; gap: 12px; margin: 0 auto 22px; max-width: 760px; animation: rise .25s ease-out both; }
+    .message.user { justify-content: flex-end; }
+    .avatar { flex: 0 0 30px; height: 30px; display: grid; place-items: center; border-radius: 10px; color: #286445; background: var(--mint); font: 700 12px Arial, sans-serif; }
+    .message.user .avatar { order: 2; color: #8e3d2d; background: #ffe0d8; }
+    .bubble { max-width: min(680px, 85%); padding: 12px 16px; border-radius: 16px 16px 16px 4px; color: #27342e; background: #fff; border: 1px solid var(--line); white-space: pre-wrap; box-shadow: 0 5px 15px rgba(48, 75, 57, .04); }
+    .message.user .bubble { border-radius: 16px 16px 4px 16px; color: #56342d; background: #fff0eb; border-color: #f5d5cc; }
+    .composer-wrap { padding: 18px clamp(20px, 6vw, 78px) 24px; border-top: 1px solid var(--line); background: rgba(255,255,255,.72); }
+    .composer { display: flex; gap: 10px; align-items: flex-end; max-width: 760px; margin: auto; padding: 10px; border: 1px solid #cfded3; border-radius: 16px; background: #fff; box-shadow: 0 8px 25px rgba(52, 83, 62, .07); }
+    textarea { width: 100%; min-height: 44px; max-height: 140px; resize: none; border: 0; outline: 0; padding: 8px 6px; color: var(--ink); background: transparent; }
+    textarea::placeholder { color: #91a099; }
+    .send { width: 42px; height: 42px; border: 0; border-radius: 11px; color: white; background: var(--mint-strong); font-size: 20px; line-height: 1; }
+    .send:hover { background: #256d49; }
+    .send:disabled { opacity: .45; cursor: wait; }
+    .meta { max-width: 760px; margin: 8px auto 0; display: flex; justify-content: space-between; color: #87968e; font: 11px Arial, sans-serif; }
+    .typing { color: var(--mint-strong); font-style: italic; }
+    @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 760px) {
+      .app { padding: 0; }
+      .shell { min-height: 100vh; border-radius: 0; grid-template-columns: 1fr; }
+      aside { padding: 18px 20px; gap: 15px; }
+      aside h2, .side-note { display: none; }
+      .status { margin-top: 0; }
+      .model-card { padding: 10px; }
+      header { padding: 18px 20px; }
+      header h1 { font-size: 20px; }
+      .messages { padding: 24px 16px; }
+      .composer-wrap { padding: 14px 16px 18px; }
+      .welcome { margin-top: 10vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="shell">
+      <aside>
+        <div class="brand"><div class="brand-mark">L</div><div><strong>LLM Desk</strong><small>personal assistant lab</small></div></div>
+        <div><p class="eyebrow">Workspace</p><h2>Think clearly.<br>Ask freely.</h2></div>
+        <div class="model-card">
+          <label for="model">Model đang dùng</label>
+          <select id="model">
+            <option value="gemini-3.8-flash">gemini-3.8-flash</option>
+            <option value="gemini-3.5-flash-lite">gemini-3.5-flash-lite</option>
+          </select>
+        </div>
+        <p class="side-note">Cuộc trò chuyện được giữ trong trình duyệt hiện tại và gửi tới model bạn chọn.</p>
+        <div class="toolbox"><p class="eyebrow">Lab tools</p><button class="tool-button compare-button" id="compare" type="button">So sánh 2 model</button><button class="tool-button" data-task="grade">Chạy grade.py</button><button class="tool-button" data-task="tests">Chạy toàn bộ test</button><button class="tool-button" data-task="part1">Test Part 1</button><button class="tool-button" data-task="part2">Test Part 2</button><button class="tool-button" data-task="part3">Test Part 3</button><button class="tool-button" data-task="part4">Test Part 4</button></div>
+        <div class="status"><span class="dot"></span>API gateway ready</div>
+      </aside>
+      <main>
+        <header><div><h1>Trợ lý của bạn</h1><p>Hỏi, khám phá, và biến ý tưởng thành bước tiếp theo.</p></div><div><button class="clear" id="clear" type="button">Xóa cuộc trò chuyện</button><button class="quit" id="quit" type="button">Quit</button></div></header>
+        <section class="results" aria-live="polite"><div class="result-head"><span>Kết quả chạy lab</span><span class="result-status" id="resultStatus">Chưa chạy</span></div><pre class="result-output" id="resultOutput">Chọn một tác vụ bên trái để xem kết quả ở đây.</pre></section>
+        <section class="comparison" id="comparison" aria-live="polite"><article class="compare-card"><h3 id="mainModel">Model chính</h3><div class="compare-metrics"><span id="mainLatency">Latency: -</span><span id="mainCost">Cost: -</span></div><div class="compare-response" id="mainResponse"></div></article><article class="compare-card"><h3 id="miniModel">Model mini</h3><div class="compare-metrics"><span id="miniLatency">Latency: -</span><span>Model mini</span></div><div class="compare-response" id="miniResponse"></div></article></section>
+        <section class="messages" id="messages">
+          <div class="welcome" id="welcome"><span class="welcome-badge">ready to talk</span><h2>Bạn đang nghĩ gì?</h2><p>Đặt một câu hỏi, yêu cầu giải thích, hoặc bắt đầu từ một ý tưởng còn dang dở.</p></div>
+        </section>
+        <div class="composer-wrap">
+          <form class="composer" id="form"><textarea id="input" rows="1" placeholder="Viết tin nhắn của bạn..." aria-label="Tin nhắn"></textarea><button class="send" id="send" type="submit" aria-label="Gửi">↑</button></form>
+          <div class="meta"><span id="hint">Enter để gửi · Shift + Enter để xuống dòng</span><span id="counter">0 lượt</span></div>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script>
+    const model = document.querySelector('#model');
+    const messagesEl = document.querySelector('#messages');
+    const welcome = document.querySelector('#welcome');
+    const form = document.querySelector('#form');
+    const input = document.querySelector('#input');
+    const send = document.querySelector('#send');
+    const counter = document.querySelector('#counter');
+    const hint = document.querySelector('#hint');
+    const resultOutput = document.querySelector('#resultOutput');
+    const resultStatus = document.querySelector('#resultStatus');
+    const comparison = document.querySelector('#comparison');
+    let messages = [];
+    let sessionStats = { turns: 0, promptTokens: 0, completionTokens: 0 };
+
+    function resizeInput() {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+    }
+    function addMessage(role, content) {
+      welcome?.remove();
+      const row = document.createElement('div');
+      row.className = `message ${role}`;
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar';
+      avatar.textContent = role === 'user' ? 'B' : 'L';
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = content;
+      row.append(avatar, bubble);
+      messagesEl.appendChild(row);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      return bubble;
+    }
+    function setBusy(value) {
+      send.disabled = value;
+      input.disabled = value;
+      hint.textContent = value ? 'Đang suy nghĩ...' : 'Enter để gửi · Shift + Enter để xuống dòng';
+      hint.className = value ? 'typing' : '';
+    }
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const content = input.value.trim();
+      if (!content || send.disabled) return;
+      messages.push({ role: 'user', content });
+      addMessage('user', content);
+      input.value = '';
+      resizeInput();
+      setBusy(true);
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: model.value, messages })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Không thể gọi model');
+        messages.push({ role: 'assistant', content: data.content });
+        addMessage('assistant', data.content);
+        sessionStats.turns += 1;
+        sessionStats.promptTokens += data.usage?.prompt_tokens || 0;
+        sessionStats.completionTokens += data.usage?.completion_tokens || 0;
+        counter.textContent = `${messages.filter(item => item.role === 'user').length} lượt`;
+      } catch (error) {
+        addMessage('assistant', `Không thể kết nối: ${error.message}`);
+      } finally {
+        setBusy(false);
+        input.focus();
+      }
+    });
+    input.addEventListener('input', resizeInput);
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); form.requestSubmit(); }
+    });
+    document.querySelector('#clear').addEventListener('click', () => {
+      messages = [];
+      messagesEl.innerHTML = '';
+      messagesEl.appendChild(welcome.cloneNode(true));
+      counter.textContent = '0 lượt';
+      input.focus();
+    });
+    document.querySelectorAll('[data-task]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        document.querySelectorAll('[data-task]').forEach(item => item.disabled = true);
+        resultStatus.textContent = 'Đang chạy...';
+        resultOutput.textContent = `${button.textContent}...`;
+        try {
+          const response = await fetch('/api/run', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ task: button.dataset.task })
+          });
+          const data = await response.json();
+          resultStatus.textContent = data.ok ? 'Hoàn tất' : 'Có lỗi';
+          resultOutput.textContent = data.output || 'Không có output.';
+        } catch (error) {
+          resultStatus.textContent = 'Có lỗi';
+          resultOutput.textContent = error.message;
+        } finally {
+          document.querySelectorAll('[data-task]').forEach(item => item.disabled = false);
+        }
+      });
+    });
+    document.querySelector('#compare').addEventListener('click', async () => {
+      const button = document.querySelector('#compare');
+      button.disabled = true;
+      resultStatus.textContent = 'Đang so sánh...';
+      resultOutput.textContent = 'Đang gọi hai model với cùng một prompt...';
+      try {
+        const response = await fetch('/api/compare', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: 'Explain artificial intelligence in one sentence.' })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Không thể so sánh model');
+        document.querySelector('#mainModel').textContent = data.main_model;
+        document.querySelector('#miniModel').textContent = data.mini_model;
+        document.querySelector('#mainLatency').textContent = `Latency: ${data.main_latency.toFixed(2)}s`;
+        document.querySelector('#miniLatency').textContent = `Latency: ${data.mini_latency.toFixed(2)}s`;
+        document.querySelector('#mainCost').textContent = `Cost: $${data.main_cost.toFixed(6)}`;
+        document.querySelector('#mainResponse').textContent = data.main_response;
+        document.querySelector('#miniResponse').textContent = data.mini_response;
+        comparison.classList.add('visible');
+        resultStatus.textContent = 'Hoàn tất';
+        resultOutput.textContent = 'Đã so sánh hai model với cùng một prompt.';
+      } catch (error) {
+        resultStatus.textContent = 'Có lỗi';
+        resultOutput.textContent = error.message;
+      } finally {
+        button.disabled = false;
+      }
+    });
+    document.querySelector('#quit').addEventListener('click', () => {
+      const backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop';
+      backdrop.innerHTML = `<div class="modal"><h2>Thống kê phiên chat</h2><p>Model hiện tại: <strong>${model.value}</strong></p><div class="stats"><div class="stat"><strong>${sessionStats.turns}</strong><span>lượt trả lời</span></div><div class="stat"><strong>${sessionStats.promptTokens}</strong><span>input tokens</span></div><div class="stat"><strong>${sessionStats.completionTokens}</strong><span>output tokens</span></div></div><button class="modal-close">Đóng thống kê</button></div>`;
+      document.body.appendChild(backdrop);
+      backdrop.querySelector('.modal-close').addEventListener('click', () => backdrop.remove());
+      backdrop.addEventListener('click', (event) => { if (event.target === backdrop) backdrop.remove(); });
+    });
+  </script>
+</body>
+</html>
