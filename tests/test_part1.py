@@ -11,7 +11,7 @@ from tests._loader import MOD
 
 
 def _make_openai_response(text: str = "Hello from OpenAI"):
-    """Tạo mock tối thiểu giống một OpenAI ChatCompletion response."""
+    """Tạo mock tối thiểu giống mộ t OpenAI ChatCompletion response."""
     choice = MagicMock()
     choice.message.content = text
     resp = MagicMock()
